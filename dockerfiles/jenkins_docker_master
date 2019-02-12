@@ -1,0 +1,13 @@
+FROM jenkinsci/jenkins:latest
+USER root
+
+ENV JENKINS_HOME /var/lib/jenkins
+ENV JAVA_ARGS -Djava.awt.headless=true -Xms512m -Xmx1g -XX:PermSize=768m -XX:MaxPermSize=1024m
+
+ARG DOCKER_GROUP_ID
+RUN groupadd -g ${DOCKER_GROUP_ID} docker && usermod -a -G docker jenkins
+
+COPY plugins.txt /usr/share/jenkins/plugins.txt
+RUN /usr/local/bin/install-plugins.sh < /usr/share/jenkins/plugins.txt
+
+USER jenkins

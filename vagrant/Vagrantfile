@@ -1,0 +1,34 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+require './config'
+
+Vagrant.configure("2") do |config|
+  # Deploy Jenkins master
+  config.vm.define "master" do |ms|
+    ms.vm.provider :virtualbox do |vb|
+      vb.cpus = 2
+      vb.memory = "2048"
+      vb.name = "Jenkins-master"
+    end
+    
+    ms.vm.box = "centos/7"
+    ms.vm.network "private_network", ip: "192.168.56.101"
+    
+    ms.ssh.insert_key = false
+    ms.ssh.private_key_path = ["~/.vagrant.d/insecure_private_key"]
+    
+    dockerfiles_dir = "/var/lib/dockerfiles"
+    jenkins_dir = "/var/lib/jenkins"
+    docker_sock_path = "/var/run/docker.sock"
+    
+    ms.vm.provision "docker", images: ["jenkinsci/jenkins:latest"] do |docker|
+      docker.build_image dockerfiles_dir, args: "-f #{dockerfiles_dir}/jenkins_docker_master -t jenkins/docker --build-arg DOCKER_GROUP_ID=$(getent group docker | cut -d: -f3)"
+      docker.run "jenkins/docker", args: "--env TZ=Europe/Moscow -p 8080:8080 -p 50000:50000 -v #{jenkins_dir}:#{jenkins_dir} -v #{docker_sock_path}:#{docker_sock_path} -v $(which docker):/usr/bin/docker"
+    end
+    
+    ms.vm.network "forwarded_port", guest: 8080, host: 8980
+
+    ms.vm.synced_folder "#{APP_HOME}/jenkins_home", jenkins_dir
+    ms.vm.synced_folder "#{APP_HOME}/dockerfiles", dockerfiles_dir
+  end
+end
