@@ -14,20 +14,22 @@
     </jenkins.model.BuildDiscarderProperty>
   </properties>
   <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@2.63">
-    <script>node(&apos;docker.local.jenkins.slave&apos;) {
-   def mvnHome
-   deleteDir()
-   
-   stage(&apos;Preparation&apos;) {
-       mvnHome = tool &apos;maven&apos;
-      git &apos;https://github.com/prayagupd/eccount-rest.git&apos;
-   }
-   stage(&apos;Build&apos;) {
-      sh &quot;&apos;${mvnHome}/bin/mvn&apos; -Dmaven.test.failure.ignore clean package&quot;
-   }
-   stage(&apos;Results&apos;) {
-      archiveArtifacts &apos;target/*.war&apos;
-   }
+    <script>timestamps {
+    node(&apos;docker.local.jenkins.slave&apos;) {
+       def mvnHome
+       deleteDir()
+       
+       stage(&apos;Preparation&apos;) {
+           mvnHome = tool &apos;maven&apos;
+          git &apos;https://github.com/prayagupd/eccount-rest.git&apos;
+       }
+       stage(&apos;Build&apos;) {
+          sh &quot;&apos;${mvnHome}/bin/mvn&apos; -Dmaven.test.failure.ignore clean package&quot;
+       }
+       stage(&apos;Results&apos;) {
+          archiveArtifacts &apos;target/*.war&apos;
+       }
+    }
 }</script>
     <sandbox>true</sandbox>
   </definition>
