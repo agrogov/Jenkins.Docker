@@ -1,0 +1,64 @@
+---
+- hosts: all
+  become: yes
+  user: vagrant
+  vars:
+    timezone: Europe/Moscow
+  tasks:
+    - name: yum update
+      yum: name=* state=latest
+
+    - name: Set timezone to {{ timezone }}
+      timezone:
+        name: "{{ timezone }}"
+
+    - name: Selinux set permissive mode
+      selinux:
+        policy: targeted
+        state: permissive
+
+    - name: Update CA certs
+      shell: |
+        update-ca-trust enable
+        update-ca-trust extract
+
+    - name: Add Docker repository
+      get_url:
+        url: https://download.docker.com/linux/centos/docker-ce.repo
+        dest: /etc/yum.repos.d/
+    
+    - name: Update yum cache
+      yum:
+        update_cache: yes
+
+    - name: Install packages
+      yum:
+        name:
+          - lxc
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          #- java-1.8.0-openjdk-devel
+          #- maven
+          #- git
+    
+    - name: Create Docker config directory
+      file:
+        path: /etc/systemd/system/docker.service.d
+        state: directory
+        mode: 0751
+    
+    - name: Override Docker config
+      copy:
+        content: "[Service]\nExecStart=\nExecStart=/usr/bin/dockerd -H tcp://0.0.0.0:2375 -H unix:///var/run/docker.sock"
+        dest: /etc/systemd/system/docker.service.d/override.conf
+        mode: 0644
+  
+    - name: Reload systemctl units
+      shell: "systemctl daemon-reload"
+        
+    - name: Start Docker
+      service:
+        name: docker
+        state: started
+        enabled: yes 
