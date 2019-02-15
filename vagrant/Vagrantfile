@@ -31,4 +31,36 @@ Vagrant.configure("2") do |config|
     ms.vm.synced_folder "#{APP_HOME}/jenkins_home", jenkins_dir
     ms.vm.synced_folder "#{APP_HOME}/dockerfiles", dockerfiles_dir
   end
+
+  # Deploy Jenkins slaves
+  MACHINE = ["slave1", "slave2", "slave3"]
+  N = 1
+  (1..N).each do |i|
+  config.vm.define "slave#{i}" do |sl|
+    sl.vm.provider :virtualbox do |vb|
+      vb.cpus = 1
+      vb.memory = "1024"
+      vb.name = "Jenkins-slave#{i}"
+    end
+    
+    sl.vm.box = "centos/7"
+    sl.vm.hostname = MACHINE[i]
+    sl.vm.network "private_network", ip: "192.168.56.#{101+i}"
+    
+    sl.ssh.insert_key = false
+    sl.ssh.private_key_path = ["~/.vagrant.d/insecure_private_key"]
+    
+    dockerfiles_dir = "/var/lib/dockerfiles"
+    sl.vm.synced_folder "#{APP_HOME}/dockerfiles", dockerfiles_dir
+    
+    sl.vm.provision "ansible_local" do |ansible|
+      ansible.playbook = "docker_install.yml"
+      ansible.verbose = true
+      #ansible.install = true
+      #ansible.limit = "all"
+      #ansible.inventory_path = "inventory.txt"
+      ansible.provisioning_path = "/vagrant/ansible/"
+    end
+  end
+  end
 end
